@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import os
 from io import BytesIO
 
 st.title("VOC / SVOC Analysis App")  # ชื่อแอปหลัก
@@ -164,9 +165,8 @@ sum_area_percent_int = int(round(sum_area_percent))
 # (B) Sum <1 ppm (Emission) -> ยังคงใช้ค่าจาก "emission_decimal_series" ก่อนปัด
 sum_less_1ppm_val = 0
 if not emission_decimal_series.empty:
-    # รวมจากค่าทศนิยมก่อนปัดลง
     sum_less_1ppm_val = emission_decimal_series[emission_decimal_series < 1].sum()
-sum_less_1ppm_val_int = int(round(sum_less_1ppm_val))  # ปัดเป็น int ตอนแสดง
+sum_less_1ppm_val_int = int(round(sum_less_1ppm_val))
 
 # (C) Sum ≥ 1 ppm (Emission) -> ใช้จาก df["Emission (ug/g)"] (int)
 sum_greater_1ppm_val = 0
@@ -192,7 +192,6 @@ if not df.empty:
         df["Component Area"] = df["Component Area"].fillna(0).astype(int)
     if "Area %" in df.columns:
         df["Area %"] = df["Area %"].round(2)
-    # Emission (ug/g) เป็น int อยู่แล้ว
 
 # --------------------------------------------------------------------
 # ส่วนที่ 7: แสดง Data Table
@@ -282,7 +281,14 @@ if st.button("Export to Excel"):
     existing_cols = [c for c in desired_cols if c in df_export.columns]
     df_export = df_export[existing_cols]
 
-    # (4) เขียนลง Excel โดยมี 2 Sheet: "Data" และ "Summary"
+    # (4) กำหนดชื่อไฟล์ตามชื่อไฟล์ที่อัปโหลด + "_export.xlsx"
+    export_filename = "calculated_emission_filtered.xlsx"  # default
+    if uploaded_file is not None:
+        import os
+        base_name = os.path.splitext(uploaded_file.name)[0]  # ตัดนามสกุล
+        export_filename = f"{base_name}_export.xlsx"         # ex: "mydata_export.xlsx"
+
+    # (5) เขียนลง Excel โดยมี 2 Sheet: "Data" และ "Summary"
     output = BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
         df_export.to_excel(writer, index=False, sheet_name="Data")
@@ -294,6 +300,6 @@ if st.button("Export to Excel"):
     st.download_button(
         label="Download Excel",
         data=excel_data,
-        file_name="calculated_emission_filtered.xlsx",
+        file_name=export_filename,  # ใช้ชื่อไฟล์อิงจาก uploaded_file
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
