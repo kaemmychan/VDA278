@@ -16,6 +16,22 @@ analysis_mode = st.selectbox(
 )
 
 # --------------------------------------------------------------------
+# ส่วนที่ 0.5: กำหนด RT Threshold สำหรับ SVOC (ถ้าเลือก SVOC)
+# --------------------------------------------------------------------
+rt_threshold = 12.1  # ค่าเริ่มต้น
+if analysis_mode == "SVOC":
+    st.subheader("SVOC RT Threshold Setting")
+    rt_threshold = st.number_input(
+        "กำหนดค่า RT ขั้นต่ำสำหรับ SVOC (Component RT ≥ ค่าที่กำหนด)",
+        min_value=0.0,
+        value=12.1,
+        step=0.1,
+        help="ข้อมูลที่มี Component RT น้อยกว่าค่านี้จะถูกตัดออก",
+        key="rt_threshold"
+    )
+    st.info(f"จะใช้ข้อมูลที่มี Component RT ≥ {rt_threshold}")
+
+# --------------------------------------------------------------------
 # ส่วนที่ 1: รับค่า Peak Area Standard (1),(2),(3) แล้วคำนวณหา Average
 # --------------------------------------------------------------------
 st.subheader("Input Peak Area Standard")
@@ -111,13 +127,16 @@ if df.empty:
 
 # --------------------------------------------------------------------
 # ส่วนที่ 3.1: กรองข้อมูลตามโหมดการวิเคราะห์
-#   - SVOC -> ตัดข้อมูลที่ Component RT < 12.1
+#   - SVOC -> ตัดข้อมูลที่ Component RT < rt_threshold (ที่ผู้ใช้กำหนด)
 #   - VOC -> ใช้ข้อมูลทั้งหมด
 # --------------------------------------------------------------------
 if not df.empty:
     if analysis_mode == "SVOC":
         if "Component RT" in df.columns:
-            df = df[df["Component RT"] >= 12.1]
+            original_count = len(df)
+            df = df[df["Component RT"] >= rt_threshold]
+            filtered_count = len(df)
+            st.info(f"กรองข้อมูล SVOC: ใช้ข้อมูล {filtered_count} แถวจากทั้งหมด {original_count} แถว (RT ≥ {rt_threshold})")
         else:
             st.warning("ไม่พบคอลัมน์ 'Component RT' จึงไม่สามารถกรองข้อมูลสำหรับ SVOC ได้")
 
